@@ -15,7 +15,7 @@
 
 #define screenWidth 960
 #define screenHeight 960
-#define Pixel 36
+#define Pixel 72
 
 //ウィンドウプロシージャ
 LRESULT CALLBACK WndPrc
@@ -230,37 +230,40 @@ HRESULT MakeWindow
 //パラメータは適当で
 Sprite sprite;
 Sprite sprite2;
-Texture textureColor;
+Texture textureBoardColor;
+Texture textureWhiteColt;
+Texture textureDarkColt;
+
 Texture textureStart;
 Texture textureOver;
 Texture textureClear;
-
 
 
 //エントリーポイント
 //プログラムの開始関数
 
 int _stdcall WinMain
-(HINSTANCE hInstance,	//プログラムを識別するハンドル
+(HINSTANCE hInstance,		//プログラムを識別するハンドル
 	HINSTANCE hPrevInstance,//アプリケーションの前のインスタンスハンドル
 							//win32だと常にNULL
 	LPSTR lpCmdLine,		//コマンドライン引数
-	int nCmdShow)		//ウィンドウの表示状態
+	int nCmdShow)			//ウィンドウの表示状態
 {
 	//変数の宣言-------------------------------------
-	
+	const int ReversiXY = 8;//おける場所　８×８
+	int ReversiMap[ReversiXY][ReversiXY];	//マップの二次配列
+	int PlayerWhite = 1;//プレイヤー１　白
+	int PlayerDark = 2;//プレイヤー２　黒
+
+
+
 	srand((unsigned int)time(NULL));//乱数の初期値設定
 
 	enum GameMode { ZERO, START, PLAY, OVER };
 	GameMode game = ZERO;
 
-	
-	////メッセージボックス
-	//MessageBox(NULL,		//ウィンドウのハンドル 
-	//	TEXT("最初の設定に成功しましたぱちぱち"),		//本文
-	//	TEXT( "テスト-タイトル"),//タイトル
-	//	MB_OK);				//メッセージボックスのタイプ
-	//						//MB_OK  okのボタンが表示
+
+
 
 	if (FAILED(RegistClassEx(hInstance)))
 	{
@@ -270,9 +273,7 @@ int _stdcall WinMain
 			MB_OK);
 		return 0;
 	}
-
 	HWND hWnd = NULL;
-
 	/*正しくウィンドウが作成されれば
 	hWndにウィンドウの識別ハンドルが入る*/
 	if (FAILED(MakeWindow(hInstance, hWnd)))
@@ -283,19 +284,11 @@ int _stdcall WinMain
 			MB_OK);
 		return 0;
 	}
-
 	//Direct3Dを管理するクラス(シングルトン)への参照を取得
 	Direct3D& d3d = Direct3D::GetInstance();
-
 	//Direct3DDeviceの作成を試みる
 	if (d3d.TryCreate(hWnd))
-	{
-		/*MessageBox(NULL,
-			TEXT("Direct3D Device作成成功"),
-			TEXT("テスト-タイトル"),
-			MB_OK);*/
-	}
-
+	{ }
 	//レンダーステートの設定  αブレンド
 	d3d.SetRenderState(RENDERSTATE::RENDER_ALPHABLEND);
 
@@ -305,13 +298,12 @@ int _stdcall WinMain
 	sprite.SetAngle(0);							//画像の回転
 
 	//テクスチャのインスタンスを作成
-	textureColor.Load(_T("Texture/tex.png"));	//0[餌] 1[プレイヤー] 2[壁] 3[ミス]
-	textureStart.Load(_T("Texture/start.png"));	//スタート画像
-	textureOver.Load(_T("Texture/over.bmp"));	//失敗画像
-	textureClear.Load(_T("Texture/clear.png"));	//クリア画像
+	textureBoardColor.Load(_T("Texture/ReversiBoard.png"));
+	textureDarkColt.Load(_T("Texture/ReversiDark.png"));
+	textureWhiteColt.Load(_T("Texture/ReversiWhite.png"));
 
 	//ここで読み込んだ画像の分割処理
-	textureColor.SetDivide(4, 0);				//今回は４分割する
+	
 
 	DirectInput * pDi = DirectInput::GetInstance();
 	pDi->Init(hWnd);
@@ -321,37 +313,17 @@ int _stdcall WinMain
 
 	MSG msg = {};
 
-	//quitメッセージが出てくるまでループを繰り返す
-	//quitメッセージは上記のウィンドウプロシージャから送信
-	//送信の条件などはウィンドウプロシージャを確認
-	while (msg.message != WM_QUIT )
+	
+	while (msg.message != WM_QUIT)
 	{
-
-		//PeekMessage
-		//メッセージキューの中にメッセージがあるかを調べて
-		//msgの中に書き込みtrueを返す
-		//メッセージがなければfalseを返す
-		//PM_REMOVEを設定しているとメッセージの書き込みのあとに
-		//メッセージキューから元のメッセージを消す
-
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
-			//仮想キーメッセージを文字メッセージに変換し
-			//それをメッセージキューにポストする
 			TranslateMessage(&msg);
-
-			//メッセージの割り当て
-			//ウィンドウプロシージャでメッセージを処理
 			DispatchMessage(&msg);
 		}
 		else
 		{
-			//メッセージキューにメッセージが無かったとき
-			//こちらの処理
-			//ここにゲーム処理を書き込んでいく
-
 			pDi->Update();//キー状態の更新
-
 			if (pDi->KeyJustPressed(DIK_A))
 			{
 				MessageBox(NULL,
@@ -385,15 +357,30 @@ int _stdcall WinMain
 					}
 					break;
 			}
-
+			//メインプログラム//------------------------------------------------------------------------------------------
 			switch (game)
 			{
 				case ZERO:
 					d3d.ClearScreen();
-
-
-					//壁の部分を初期化
-
+					//初期化　最初の状態に
+					for (int y = 0; y < ReversiXY; y++)
+					{
+						for (int x = 0; x < ReversiXY; x++)
+						{
+							if ((x == 3 && y == 3) || (x == 4 && y == 4))
+							{
+								ReversiMap[x][y] = PlayerWhite;//1Pで白
+							}
+							else if ((x == 4 && y == 3) || (x == 3 && y == 4))
+							{
+								ReversiMap[x][y] = PlayerDark;//2Pで黒
+							}
+							else
+							{
+								ReversiMap[x][y] = 0;//何も置かれていない
+							}
+						}
+					}
 					game = START;
 
 					break;
@@ -430,26 +417,49 @@ int _stdcall WinMain
 				case OVER:
 
 					game = ZERO;
-			
-			
+					break;
+			}
 
-			//まず描画 
-			d3d.BeginScene();//描画開始
-			//描画
-			d3d.ClearScreen();
+					//まず描画 
+					d3d.BeginScene();//描画開始
+					d3d.ClearScreen();//描画初期化
 
-		
-			//ゲームのスタートとオーバー時に表示する画像描画//--------------------------------------------------------------------------------------------
+					//ボードの描画　
+					for (int y = 0; y < ReversiXY; y++)
+					{
+						for (int x = 0; x < ReversiXY; x++)
+						{
+							sprite.SetPos(Pixel * x + Pixel / 2, Pixel * y + Pixel / 2);
+							sprite.Draw(textureBoardColor);
+						}
+					}
+					//駒の描画　
+					for (int y = 0; y < ReversiXY; y++)
+					{
+						for (int x = 0; x < ReversiXY; x++)
+						{
+							if (ReversiMap[x][y] == PlayerWhite)//1P 白
+							{
+								sprite.SetPos(Pixel * x + Pixel / 2 , Pixel * y + Pixel / 2);
+								sprite.Draw(textureWhiteColt);
+							}
+							else if (ReversiMap[x][y] == PlayerDark)//2P 黒
+							{
+								sprite.SetPos(Pixel * x + Pixel / 2, Pixel * y + Pixel / 2);
+								sprite.Draw(textureDarkColt);
+							}
+						}
+					}
+
+
+					//描画終了の合図//--------------------------------------------------------------------------------------------
+
+					d3d.EndScene();
+
+					//バックバッファをフロントへ反映
+					d3d.Present();
 			
-			
-			//描画終了の合図//--------------------------------------------------------------------------------------------
-
-			d3d.EndScene();
-
-			//バックバッファをフロントへ反映
-			d3d.Present();
 		}
 	}
-
 	return 0;
 }
