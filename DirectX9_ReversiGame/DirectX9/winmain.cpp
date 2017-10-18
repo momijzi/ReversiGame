@@ -233,6 +233,7 @@ Sprite sprite2;
 Texture textureBoardColor;
 Texture textureWhiteColt;
 Texture textureDarkColt;
+Texture textureRedColt;
 
 Texture textureStart;
 Texture textureOver;
@@ -251,19 +252,21 @@ int _stdcall WinMain
 {
 	//変数の宣言-------------------------------------
 	const int ReversiXY = 8;//おける場所　８×８
-	int ReversiMap[ReversiXY][ReversiXY];	//マップの二次配列
-	int PlayerWhite = 1;//プレイヤー１　白
-	int PlayerDark = 2;//プレイヤー２　黒
-
-
+	bool ReversiFlag[ReversiXY][ReversiXY];
 
 	srand((unsigned int)time(NULL));//乱数の初期値設定
 
-	enum GameMode { ZERO, START, PLAY, OVER };
+	//現在のプロセス
+	enum GameMode { ZERO, START,PROCESSING, PLAY, OVER };
 	GameMode game = ZERO;
 
+	//白の手番からスタート
+	enum PlayerTurn {PLAYERWHITE,PLAYERBLACK};
+	PlayerTurn PlayerTurn = PLAYERWHITE;
 
-
+	//盤面の情報
+	enum ReversiMap {NONE,WHITE,BLACK};
+	ReversiMap ReversiMap[ReversiXY][ReversiXY];
 
 	if (FAILED(RegistClassEx(hInstance)))
 	{
@@ -301,10 +304,9 @@ int _stdcall WinMain
 	textureBoardColor.Load(_T("Texture/ReversiBoard.png"));
 	textureDarkColt.Load(_T("Texture/ReversiDark.png"));
 	textureWhiteColt.Load(_T("Texture/ReversiWhite.png"));
+	textureRedColt.Load(_T("Texture/ReversiRedFlag.png"));
 
-	//ここで読み込んだ画像の分割処理
 	
-
 	DirectInput * pDi = DirectInput::GetInstance();
 	pDi->Init(hWnd);
 
@@ -362,61 +364,132 @@ int _stdcall WinMain
 			{
 				case ZERO:
 					d3d.ClearScreen();
-					//初期化　最初の状態に
+
+					//配列初期化　最初の状態に
 					for (int y = 0; y < ReversiXY; y++)
 					{
 						for (int x = 0; x < ReversiXY; x++)
 						{
 							if ((x == 3 && y == 3) || (x == 4 && y == 4))
 							{
-								ReversiMap[x][y] = PlayerWhite;//1Pで白
+								ReversiMap[x][y] = WHITE;//1Pで白
 							}
 							else if ((x == 4 && y == 3) || (x == 3 && y == 4))
 							{
-								ReversiMap[x][y] = PlayerDark;//2Pで黒
+								ReversiMap[x][y] = BLACK;//2Pで黒
 							}
 							else
 							{
-								ReversiMap[x][y] = 0;//何も置かれていない
+								ReversiMap[x][y] = NONE;//何も置かれていない
 							}
 						}
 					}
 					game = START;
-
 					break;
 				case START:
-					//今回難易度設定ではなくコンフィグいじりにしてみる
+
 					//エンター押したときPLAYへ
-					if (pDi->KeyJustPressed(DIK_RETURN))
+					/*if (pDi->KeyJustPressed(DIK_RETURN))
+					{*/
+						game = PROCESSING;
+					//}
+					break;
+				case PROCESSING:
+					game = PLAY;
+					//まずおける場所を判断するために配列を初期化
+					for (int y = 0; y < ReversiXY; y++)
 					{
-						//難易度追加したかった。。。
-						/*switch (degree)
+						for (int x = 0; x < ReversiXY; x++)
 						{
-							case Easy:
-								Speed = 20;
-
-								break;
-							case Herd:
-								Speed = 10;
-
-								break;
-							case Challenger:
-								Speed = 5;
-
-								break;
-						}*/
-
-						game = PLAY;
+							ReversiFlag[x][y] = false;
+						}
 					}
+					switch (PlayerTurn)
+					{
+						//白のターンの時における場所判断
+						case PLAYERWHITE:
+							for (int y = 0; y < ReversiXY; y++)
+							{
+								for (int x = 0; x < ReversiXY; x++)
+								{
+									if (ReversiMap[x][y] == WHITE)
+									{
+										//白の駒から周りを見る
+										for (int dy = -1; dy < 2; dy++)
+										{
+											for (int dx = -1; dx < 2; dx++)
+											{
+												//白の先に黒があったことを示す
+												if (ReversiMap[x + dx][y + dy] == BLACK)
+												{
+													for (int Count = 2; Count < 8; Count++)
+													{
+														//黒が並んでおり終着点に何もなかった場合
+														if (ReversiMap[x + (dx * Count)][y + (dy * Count)] == NONE)
+														{
+															//このターンおける場所を格納
+															ReversiFlag[x + (dx * Count)][y + (dy * Count)] = true;
+															break;
+														}
+														else if (ReversiMap[x + (dx * Count)][y + (dy * Count)] == WHITE)
+														{
+															break;
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+							break;
+							//黒のターンの時における場所判断
+						case PLAYERBLACK:
+							for (int y = 0; y < ReversiXY; y++)
+							{
+								for (int x = 0; x < ReversiXY; x++)
+								{
+									if (ReversiMap[x][y] == BLACK)
+									{
+										//黒の駒から周りを見る
+										for (int dy = -1; dy < 2; dy++)
+										{
+											for (int dx = -1; dx < 2; dx++)
+											{
+												//黒の先に白があったことを示す
+												if (ReversiMap[x + dx][y + dy] == WHITE)
+												{
+													for (int Count = 2; Count < 8; Count++)
+													{
+														//白が並んでおり終着点に何もなかった場合
+														if (ReversiMap[x + (dx * Count)][y + (dy * Count)] == NONE)
+														{
+															//このターンおける場所を格納
+															ReversiFlag[x + (dx * Count)][y + (dy * Count)] = true;
+															break;
+														}
+														else if (ReversiMap[x + (dx * Count)][y + (dy * Count)] == BLACK)
+														{
+															break;
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+							break;
+					}
+
 					break;
 				case PLAY:
-					//とりあえず常時蛇が動くプログラム
-
-
+					
+				
 					break;
 				case OVER:
 
-					game = ZERO;
+					
 					break;
 			}
 
@@ -424,7 +497,7 @@ int _stdcall WinMain
 					d3d.BeginScene();//描画開始
 					d3d.ClearScreen();//描画初期化
 
-					//ボードの描画　
+					//ボードの描画　//大きさを変える気がないならば固定でやればよい
 					for (int y = 0; y < ReversiXY; y++)
 					{
 						for (int x = 0; x < ReversiXY; x++)
@@ -433,20 +506,28 @@ int _stdcall WinMain
 							sprite.Draw(textureBoardColor);
 						}
 					}
-					//駒の描画　
+					//駒 と　おける場所の描画
 					for (int y = 0; y < ReversiXY; y++)
 					{
 						for (int x = 0; x < ReversiXY; x++)
 						{
-							if (ReversiMap[x][y] == PlayerWhite)//1P 白
+							//白駒描画
+							if (ReversiMap[x][y] == WHITE)//1P 白
 							{
 								sprite.SetPos(Pixel * x + Pixel / 2 , Pixel * y + Pixel / 2);
 								sprite.Draw(textureWhiteColt);
 							}
-							else if (ReversiMap[x][y] == PlayerDark)//2P 黒
+							//黒駒描画
+							else if (ReversiMap[x][y] == BLACK)//2P 黒
 							{
 								sprite.SetPos(Pixel * x + Pixel / 2, Pixel * y + Pixel / 2);
 								sprite.Draw(textureDarkColt);
+							}
+							//おける場所描画
+							else if (ReversiFlag[x][y] == true )
+							{
+								sprite.SetPos(Pixel * x + Pixel / 2, Pixel * y + Pixel / 2);
+								sprite.Draw(textureRedColt);
 							}
 						}
 					}
