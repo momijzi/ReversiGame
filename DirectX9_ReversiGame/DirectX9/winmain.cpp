@@ -481,7 +481,6 @@ int _stdcall WinMain
 							}
 							break;
 					}
-
 					break;
 				case PLAY:
 					
@@ -492,7 +491,6 @@ int _stdcall WinMain
 					
 					break;
 			}
-
 					//まず描画 
 					d3d.BeginScene();//描画開始
 					d3d.ClearScreen();//描画初期化
@@ -512,13 +510,13 @@ int _stdcall WinMain
 						for (int x = 0; x < ReversiXY; x++)
 						{
 							//白駒描画
-							if (ReversiMap[x][y] == WHITE)//1P 白
+							if (ReversiMap[x][y] == WHITE)		//1P 白
 							{
 								sprite.SetPos(Pixel * x + Pixel / 2 , Pixel * y + Pixel / 2);
 								sprite.Draw(textureWhiteColt);
 							}
 							//黒駒描画
-							else if (ReversiMap[x][y] == BLACK)//2P 黒
+							else if (ReversiMap[x][y] == BLACK)	//2P 黒
 							{
 								sprite.SetPos(Pixel * x + Pixel / 2, Pixel * y + Pixel / 2);
 								sprite.Draw(textureDarkColt);
@@ -531,8 +529,6 @@ int _stdcall WinMain
 							}
 						}
 					}
-
-
 					//描画終了の合図//--------------------------------------------------------------------------------------------
 
 					d3d.EndScene();
