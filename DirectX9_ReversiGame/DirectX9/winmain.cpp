@@ -234,6 +234,9 @@ Texture textureBoardColor;
 Texture textureWhiteColt;
 Texture textureDarkColt;
 Texture textureRedColt;
+
+Texture Score;
+
 Texture textureStart;
 Texture textureOver;
 Texture textureClear;
@@ -254,20 +257,23 @@ int _stdcall WinMain
 	const int ReversiXY = 8;//おける場所　８×８
 	int ReversiFlag[ReversiXY][ReversiXY];		//ひっくりかえせる場所
 	int MousePositionX, MousePositionY;			//マウスの位置
-	int Mx, My;
+	int Mx, My;									//判断するための変数
+	int TurnY = Pixel / 2.1;					//どちらのターンか判断
+	bool Turnflag = false;						//パスなどのためフラグ追加
+	int PassCount = 0;							//パスした回数　２連続で続いたら終わり
 
 	srand((unsigned int)time(NULL));//乱数の初期値設定
 
 	//現在のプロセス
-	enum GameMode { ZERO, START,PROCESSING, PLAY, OVER };
+	enum GameMode { ZERO, START, PROCESSING, PLAY, OVER };
 	GameMode game = ZERO;
 
 	//白の手番からスタート
-	enum PlayerTurn {PLAYERWHITE,PLAYERBLACK};
+	enum PlayerTurn { PLAYERWHITE, PLAYERBLACK };
 	PlayerTurn PlayerTurn = PLAYERWHITE;
 
 	//盤面の情報
-	enum ReversiMap {NONE,WHITE,BLACK};
+	enum ReversiMap { NONE, WHITE, BLACK };
 	ReversiMap ReversiMap[ReversiXY][ReversiXY];
 
 	if (FAILED(RegistClassEx(hInstance)))
@@ -293,7 +299,8 @@ int _stdcall WinMain
 	Direct3D& d3d = Direct3D::GetInstance();
 	//Direct3DDeviceの作成を試みる
 	if (d3d.TryCreate(hWnd))
-	{ }
+	{
+	}
 	//レンダーステートの設定  αブレンド
 	d3d.SetRenderState(RENDERSTATE::RENDER_ALPHABLEND);
 
@@ -302,13 +309,17 @@ int _stdcall WinMain
 	sprite.SetSize(Pixel, Pixel);				//画像の大きさ
 	sprite.SetAngle(0);							//画像の回転
 
+	sprite2.SetAlpha(0.1);						//透明度の設定
+	sprite2.SetSize(64, 128);				//画像の大きさ
+	sprite2.SetAngle(0);							//画像の回転
+
 	//テクスチャのインスタンスを作成
 	textureBoardColor.Load(_T("Texture/ReversiBoard.png"));
 	textureDarkColt.Load(_T("Texture/ReversiDark.png"));
 	textureWhiteColt.Load(_T("Texture/ReversiWhite.png"));
 	textureRedColt.Load(_T("Texture/ReversiRedFlag.png"));
+	Score.Load(_T("Texture/Score.png"));
 
-	
 	DirectInput * pDi = DirectInput::GetInstance();
 	pDi->Init(hWnd);
 
@@ -317,7 +328,7 @@ int _stdcall WinMain
 
 	MSG msg = {};
 
-	
+
 	while (msg.message != WM_QUIT)
 	{
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -341,7 +352,6 @@ int _stdcall WinMain
 			{
 				int breakpoint = 0;
 			}
-
 			//sprite.SetAngle(sprite.GetAngle_Rad()+0.0f);//回転ここのfを大きい値にするほど回転速度が上がる
 
 			static int dir = 1;//α
@@ -405,7 +415,8 @@ int _stdcall WinMain
 					//}
 					break;
 				case PROCESSING:
-					game = PLAY;
+				{
+					Turnflag = false;
 					//まずおける場所を判断するために配列を初期化
 					for (int y = 0; y < ReversiXY; y++)
 					{
@@ -443,6 +454,7 @@ int _stdcall WinMain
 															{
 																//このターンおける場所を格納
 																ReversiFlag[x + (dx * Count)][y + (dy * Count)] = 1;
+																Turnflag = true;
 																break;
 															}
 															else if (ReversiMap[x + (dx * Count)][y + (dy * Count)] == WHITE)
@@ -484,6 +496,7 @@ int _stdcall WinMain
 															{
 																//このターンおける場所を格納
 																ReversiFlag[x + (dx * Count)][y + (dy * Count)] = 1;
+																Turnflag = true;
 																break;
 															}
 															else if (ReversiMap[x + (dx * Count)][y + (dy * Count)] == BLACK)
@@ -500,6 +513,28 @@ int _stdcall WinMain
 							}
 							break;
 					}
+					if (Turnflag != true && PassCount != 2)
+					{
+						PassCount++;
+						if (PlayerTurn != PLAYERBLACK)
+						{
+							PlayerTurn = PLAYERBLACK;
+						}
+						else
+						{
+							PlayerTurn = PLAYERWHITE;
+						}
+					}
+					else if (PassCount == 2)
+					{
+						game = OVER;
+					}
+					else if (Turnflag == true)
+					{
+						PassCount = 0;
+						game = PLAY;
+					}
+				}
 					break;
 				case PLAY:
 				{
@@ -582,60 +617,67 @@ int _stdcall WinMain
 								}
 								PlayerTurn = PLAYERWHITE;
 							}
+							TurnY = TurnY * -1;
 							game = PROCESSING;
 						}
 					}
 				}
-					break;
+				break;
 				case OVER:
 
-					
+
 					break;
 			}
-					//まず描画 
-					d3d.BeginScene();//描画開始
-					d3d.ClearScreen();//描画初期化
+			//まず描画 
+			d3d.BeginScene();//描画開始
+			d3d.ClearScreen();//描画初期化
 
-					//ボードの描画　//大きさを変える気がないならば固定でやればよい
-					for (int y = 0; y < ReversiXY; y++)
+			//ボードの描画　//大きさを変える気がないならば固定でやればよい
+			for (int y = 0; y < ReversiXY; y++)
+			{
+				for (int x = 0; x < ReversiXY; x++)
+				{
+					sprite.SetPos(Pixel * x + Pixel / 2, Pixel * y + Pixel / 2);
+					sprite.Draw(textureBoardColor);
+				}
+			}
+			//駒 と　おける場所の描画
+			for (int y = 0; y < ReversiXY; y++)
+			{
+				for (int x = 0; x < ReversiXY; x++)
+				{
+					//白駒描画
+					if (ReversiMap[x][y] == WHITE)		//1P 白
 					{
-						for (int x = 0; x < ReversiXY; x++)
-						{
-							sprite.SetPos(Pixel * x + Pixel / 2, Pixel * y + Pixel / 2);
-							sprite.Draw(textureBoardColor);
-						}
+						sprite.SetPos(Pixel * x + Pixel / 2, Pixel * y + Pixel / 2);
+						sprite.Draw(textureWhiteColt);
 					}
-					//駒 と　おける場所の描画
-					for (int y = 0; y < ReversiXY; y++)
+					//黒駒描画
+					else if (ReversiMap[x][y] == BLACK)	//2P 黒
 					{
-						for (int x = 0; x < ReversiXY; x++)
-						{
-							//白駒描画
-							if (ReversiMap[x][y] == WHITE)		//1P 白
-							{
-								sprite.SetPos(Pixel * x + Pixel / 2 , Pixel * y + Pixel / 2);
-								sprite.Draw(textureWhiteColt);
-							}
-							//黒駒描画
-							else if (ReversiMap[x][y] == BLACK)	//2P 黒
-							{
-								sprite.SetPos(Pixel * x + Pixel / 2, Pixel * y + Pixel / 2);
-								sprite.Draw(textureDarkColt);
-							}
-							//おける場所描画
-							else if (ReversiFlag[x][y] == 1 )
-							{
-								sprite.SetPos(Pixel * x + Pixel / 2, Pixel * y + Pixel / 2);
-								sprite.Draw(textureRedColt);
-							}
-						}
+						sprite.SetPos(Pixel * x + Pixel / 2, Pixel * y + Pixel / 2);
+						sprite.Draw(textureDarkColt);
 					}
-					//描画終了の合図//--------------------------------------------------------------------------------------------
+					//おける場所描画
+					else if (ReversiFlag[x][y] == 1)
+					{
+						sprite.SetPos(Pixel * x + Pixel / 2, Pixel * y + Pixel / 2);
+						sprite.Draw(textureRedColt);
+					}
+				}
+			}
+			
+			sprite.SetPos(screenWidth / 4 * 3 - Pixel+ Pixel / 2, screenHeight / 2 +TurnY + Pixel / 2);
+			sprite.Draw(textureRedColt);
 
-					d3d.EndScene();
+			sprite2.SetPos(screenWidth / 4 * 3 + Pixel / 2, screenHeight / 2 + Pixel / 2);
+			sprite2.Draw(Score);
+			//描画終了の合図//--------------------------------------------------------------------------------------------
 
-					//バックバッファをフロントへ反映
-					d3d.Present();			
+			d3d.EndScene();
+
+			//バックバッファをフロントへ反映
+			d3d.Present();
 		}
 	}
 	return 0;
