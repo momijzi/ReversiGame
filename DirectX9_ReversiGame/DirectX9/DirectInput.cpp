@@ -288,7 +288,6 @@ HRESULT DirectInput::Update()
 		//ˆÚ“®‚µ‚½·•ª‚ðŒvŽZ
 		mousePosDelta = mousePos - mousePosPreview;
 	}
-
 	return S_OK;
 }
 
@@ -407,7 +406,6 @@ HRESULT DirectInput::Release()
 		pMouseDevice->Release();
 		pMouseDevice = NULL;
 	}
-
 	if (pKeyDevice)
 	{
 		pKeyDevice->Unacquire();

@@ -94,7 +94,6 @@ public :
 		}
 		return *pInstance;//唯一のインスタンスへの参照を返す
 	}
-
 	//作成した唯一のインスタンスを破棄する
 	static  void DestroyInstance()
 	{

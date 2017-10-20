@@ -234,10 +234,10 @@ Texture textureBoardColor;
 Texture textureWhiteColt;
 Texture textureDarkColt;
 Texture textureRedColt;
-
 Texture textureStart;
 Texture textureOver;
 Texture textureClear;
+
 
 
 //エントリーポイント
@@ -252,7 +252,9 @@ int _stdcall WinMain
 {
 	//変数の宣言-------------------------------------
 	const int ReversiXY = 8;//おける場所　８×８
-	bool ReversiFlag[ReversiXY][ReversiXY];
+	int ReversiFlag[ReversiXY][ReversiXY];		//ひっくりかえせる場所
+	int MousePositionX, MousePositionY;			//マウスの位置
+	int Mx, My;
 
 	srand((unsigned int)time(NULL));//乱数の初期値設定
 
@@ -364,7 +366,16 @@ int _stdcall WinMain
 			{
 				case ZERO:
 					d3d.ClearScreen();
+					MousePositionX = screenWidth / 2, MousePositionY = screenHeight / 2;
 
+					for (int y = 0; y < ReversiXY; y++)
+					{
+						for (int x = 0; x < ReversiXY; x++)
+						{
+							//0で初期化
+							ReversiFlag[x][y] = 0;
+						}
+					}
 					//配列初期化　最初の状態に
 					for (int y = 0; y < ReversiXY; y++)
 					{
@@ -387,11 +398,10 @@ int _stdcall WinMain
 					game = START;
 					break;
 				case START:
-
 					//エンター押したときPLAYへ
 					/*if (pDi->KeyJustPressed(DIK_RETURN))
 					{*/
-						game = PROCESSING;
+					game = PROCESSING;
 					//}
 					break;
 				case PROCESSING:
@@ -401,7 +411,8 @@ int _stdcall WinMain
 					{
 						for (int x = 0; x < ReversiXY; x++)
 						{
-							ReversiFlag[x][y] = false;
+							//0で初期化
+							ReversiFlag[x][y] = 0;
 						}
 					}
 					switch (PlayerTurn)
@@ -424,16 +435,20 @@ int _stdcall WinMain
 												{
 													for (int Count = 2; Count < 8; Count++)
 													{
-														//黒が並んでおり終着点に何もなかった場合
-														if (ReversiMap[x + (dx * Count)][y + (dy * Count)] == NONE)
+														if (x + (dx * Count) < 8 && y + (dy * Count) < 8
+															&& x + (dx * Count) > -1 && y + (dy * Count) > -1)
 														{
-															//このターンおける場所を格納
-															ReversiFlag[x + (dx * Count)][y + (dy * Count)] = true;
-															break;
-														}
-														else if (ReversiMap[x + (dx * Count)][y + (dy * Count)] == WHITE)
-														{
-															break;
+															//黒が並んでおり終着点に何もなかった場合
+															if (ReversiMap[x + (dx * Count)][y + (dy * Count)] == NONE)
+															{
+																//このターンおける場所を格納
+																ReversiFlag[x + (dx * Count)][y + (dy * Count)] = 1;
+																break;
+															}
+															else if (ReversiMap[x + (dx * Count)][y + (dy * Count)] == WHITE)
+															{
+																break;
+															}
 														}
 													}
 												}
@@ -461,16 +476,20 @@ int _stdcall WinMain
 												{
 													for (int Count = 2; Count < 8; Count++)
 													{
-														//白が並んでおり終着点に何もなかった場合
-														if (ReversiMap[x + (dx * Count)][y + (dy * Count)] == NONE)
+														if (x + (dx * Count) < 8 && y + (dy * Count) < 8
+															&& x + (dx * Count) > -1 && y + (dy * Count) > -1)
 														{
-															//このターンおける場所を格納
-															ReversiFlag[x + (dx * Count)][y + (dy * Count)] = true;
-															break;
-														}
-														else if (ReversiMap[x + (dx * Count)][y + (dy * Count)] == BLACK)
-														{
-															break;
+															//黒が並んでおり終着点に何もなかった場合
+															if (ReversiMap[x + (dx * Count)][y + (dy * Count)] == NONE)
+															{
+																//このターンおける場所を格納
+																ReversiFlag[x + (dx * Count)][y + (dy * Count)] = 1;
+																break;
+															}
+															else if (ReversiMap[x + (dx * Count)][y + (dy * Count)] == BLACK)
+															{
+																break;
+															}
 														}
 													}
 												}
@@ -483,8 +502,90 @@ int _stdcall WinMain
 					}
 					break;
 				case PLAY:
-					
-				
+				{
+					Vector2<int> mousepos = pDi->MousePosition();
+					MousePositionX = mousepos.X();
+					MousePositionY = mousepos.Y();
+					Mx = (MousePositionX) / Pixel;
+					My = (MousePositionY) / Pixel;
+
+					//マウス座標が取れた　そしてプレイヤーがおける場所を押したとき
+					if (pDi->MouseButtonJustPressed(MOUSE_BUTTON_LEFT))
+					{
+						if (ReversiFlag[Mx][My] == 1)
+						{
+							if (PlayerTurn != PLAYERBLACK)
+							{
+								//白を置く
+								ReversiMap[Mx][My] = WHITE;
+								//ひっくり返す
+								for (int dy = -1; dy < 2; dy++)
+								{
+									for (int dx = -1; dx < 2; dx++)
+									{
+										//置いた先に黒があったことを示す
+										if (ReversiMap[Mx + dx][My + dy] == BLACK)
+										{
+											//先を見るためのループ
+											for (int Count = 2; Count < 8; Count++)
+											{
+												//ここで配列外を除外
+												if (Mx + (dx * Count) < 8 && My + (dy * Count) < 8
+													&& Mx + (dx * Count) > -1 && My + (dy * Count) > -1)
+												{
+													//白に辿りついた　返す
+													if (ReversiMap[Mx + (dx * Count)][My + (dy * Count)] == WHITE)
+													{
+														for (int Change = Count - 1; Change > 0; Change--)
+														{
+															ReversiMap[Mx + (dx * Change)][My + (dy * Change)] = WHITE;
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+								PlayerTurn = PLAYERBLACK;
+							}
+							else
+							{
+								//黒を置く
+								ReversiMap[Mx][My] = BLACK;
+								//ひっくり返す
+								for (int dy = -1; dy < 2; dy++)
+								{
+									for (int dx = -1; dx < 2; dx++)
+									{
+										//置いた先に白があったことを示す
+										if (ReversiMap[Mx + dx][My + dy] == WHITE)
+										{
+											//先を見るためのループ
+											for (int Count = 2; Count < 8; Count++)
+											{
+												//ここで配列外を除外
+												if (Mx + (dx * Count) < 8 && My + (dy * Count) < 8
+													&& Mx + (dx * Count) > -1 && My + (dy * Count) > -1)
+												{
+													//黒に辿りついた　返す
+													if (ReversiMap[Mx + (dx * Count)][My + (dy * Count)] == BLACK)
+													{
+														for (int Change = Count - 1; Change > 0; Change--)
+														{
+															ReversiMap[Mx + (dx * Change)][My + (dy * Change)] = BLACK;
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+								PlayerTurn = PLAYERWHITE;
+							}
+							game = PROCESSING;
+						}
+					}
+				}
 					break;
 				case OVER:
 
@@ -522,7 +623,7 @@ int _stdcall WinMain
 								sprite.Draw(textureDarkColt);
 							}
 							//おける場所描画
-							else if (ReversiFlag[x][y] == true )
+							else if (ReversiFlag[x][y] == 1 )
 							{
 								sprite.SetPos(Pixel * x + Pixel / 2, Pixel * y + Pixel / 2);
 								sprite.Draw(textureRedColt);
@@ -534,8 +635,7 @@ int _stdcall WinMain
 					d3d.EndScene();
 
 					//バックバッファをフロントへ反映
-					d3d.Present();
-			
+					d3d.Present();			
 		}
 	}
 	return 0;
