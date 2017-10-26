@@ -569,12 +569,17 @@ int _stdcall WinMain
 													&& Mx + (dx * Count) > -1 && My + (dy * Count) > -1)
 												{
 													//白に辿りついた　返す
-													if (ReversiMap[Mx + (dx * Count)][My + (dy * Count)] == WHITE)
+													if (ReversiMap[Mx + (dx * Count)][My + (dy * Count)] == NONE)
+													{
+														break;
+													}
+													else if (ReversiMap[Mx + (dx * Count)][My + (dy * Count)] == WHITE)
 													{
 														for (int Change = Count - 1; Change > 0; Change--)
 														{
 															ReversiMap[Mx + (dx * Change)][My + (dy * Change)] = WHITE;
 														}
+														break;
 													}
 												}
 											}
@@ -602,13 +607,18 @@ int _stdcall WinMain
 												if (Mx + (dx * Count) < 8 && My + (dy * Count) < 8
 													&& Mx + (dx * Count) > -1 && My + (dy * Count) > -1)
 												{
+													if (ReversiMap[Mx + (dx * Count)][My + (dy * Count)] == NONE)
+													{
+														break;
+													}
 													//黒に辿りついた　返す
-													if (ReversiMap[Mx + (dx * Count)][My + (dy * Count)] == BLACK)
+													else if (ReversiMap[Mx + (dx * Count)][My + (dy * Count)] == BLACK)
 													{
 														for (int Change = Count - 1; Change > 0; Change--)
 														{
 															ReversiMap[Mx + (dx * Change)][My + (dy * Change)] = BLACK;
 														}
+														break;
 													}
 												}
 											}
