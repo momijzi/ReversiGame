@@ -276,7 +276,7 @@ int _stdcall WinMain
 	enum GameMode { ZERO, START, PROCESSING, PLAY, OVER };
 	GameMode game = ZERO;
 
-	//白の手番からスタート
+	//黒の手番からスタート
 	enum PlayerTurn { PLAYERWHITE, PLAYERBLACK };
 	PlayerTurn PlayerTurn = PLAYERBLACK;
 
@@ -332,7 +332,7 @@ int _stdcall WinMain
 	textureRedColt.Load(_T("Texture/ReversiRedFlag.png"));
 	Score.Load(_T("Texture/Score.png"));
 	Number.Load(_T("Texture/number.png"));
-	WinW.Load(_T("Texture/WinW,png"));
+	WinW.Load(_T("Texture/WinW.png"));
 	WinB.Load(_T("Texture/WinB.png"));
 
 	//分割処理（画像）
@@ -396,7 +396,7 @@ int _stdcall WinMain
 					d3d.ClearScreen();
 					MousePositionX = screenWidth / 2, MousePositionY = screenHeight / 2;
 					WscoreL = WscoreR = BscoreL = BscoreR = 0;
-						  
+					PlayerTurn = PLAYERBLACK;
 
 					for (int y = 0; y < ReversiXY; y++)
 					{
@@ -557,21 +557,25 @@ int _stdcall WinMain
 							}
 							break;
 					}
-					if (Turnflag != true && PassCount != 2)
+					//ゲームの終わるかどうかの判定
+					if (Turnflag != true)
 					{
 						PassCount++;
-						if (PlayerTurn != PLAYERBLACK)
+						if (PassCount != 2)
 						{
-							PlayerTurn = PLAYERBLACK;
+							if (PlayerTurn != PLAYERBLACK)
+							{
+								PlayerTurn = PLAYERBLACK;
+							}
+							else
+							{
+								PlayerTurn = PLAYERWHITE;
+							}
 						}
 						else
 						{
-							PlayerTurn = PLAYERWHITE;
+							game = OVER;
 						}
-					}
-					else if (PassCount == 2)
-					{
-						game = OVER;
 					}
 					else if (Turnflag == true)
 					{
@@ -760,8 +764,7 @@ int _stdcall WinMain
 			//勝利者を讃えたまえ
 			if (game == OVER)
 			{
-				sprite3.SetPos(screenWidth / 9 * 7 + Pixel / 2 , screenHeight /10 * 2 + Pixel / 2);
-
+				sprite3.SetPos(screenWidth / 9 * 7 + Pixel / 2, screenHeight / 10 * 2 + Pixel / 2 );
 				if (WscoreL * 10 + WscoreR > BscoreL * 10 + BscoreR)
 				{
 					sprite3.Draw(WinW);
