@@ -242,6 +242,7 @@ Texture Score;
 
 Texture WinW;
 Texture WinB;
+Texture Draw;
 
 
 
@@ -334,6 +335,7 @@ int _stdcall WinMain
 	Number.Load(_T("Texture/number.png"));
 	WinW.Load(_T("Texture/WinW.png"));
 	WinB.Load(_T("Texture/WinB.png"));
+	Draw.Load(_T("Texture/Draw.png"));
 
 	//分割処理（画像）
 	Number.SetDivide(10, 0);
@@ -769,9 +771,13 @@ int _stdcall WinMain
 				{
 					sprite3.Draw(WinW);
 				}
-				else
+				else if(WscoreL * 10 + WscoreR < BscoreL * 10 + BscoreR)
 				{
 					sprite3.Draw(WinB);
+				}
+				else
+				{
+					sprite3.Draw(Draw);
 				}
 			}
 			//描画終了の合図//--------------------------------------------------------------------------------------------
