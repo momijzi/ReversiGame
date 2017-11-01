@@ -261,9 +261,9 @@ int _stdcall WinMain
 	int ReversiFlag[ReversiXY][ReversiXY];		//ひっくりかえせる場所
 	int MousePositionX, MousePositionY;			//マウスの位置
 	int Mx, My;									//判断するための変数
-	int TurnY = -Pixel / 1.55;					//どちらのターンか判断
-	bool Turnflag = false;						//パスなどのためフラグ追加
-	int PassCount = 0;							//パスした回数　２連続で続いたら終わり(黒白置くところがない状態)
+	int TurnY;									//どちらのターンか判断
+	bool Turnflag;								//パスなどのためフラグ追加
+	int PassCount;								//パスした回数　２連続で続いたら終わり(黒白置くところがない状態)
 
 
 
@@ -396,6 +396,8 @@ int _stdcall WinMain
 			{
 				case ZERO:
 					d3d.ClearScreen();
+					TurnY = -Pixel / 1.55;
+					PassCount = 0; Turnflag = false;
 					MousePositionX = screenWidth / 2, MousePositionY = screenHeight / 2;
 					WscoreL = WscoreR = BscoreL = BscoreR = 0;
 					PlayerTurn = PLAYERBLACK;
