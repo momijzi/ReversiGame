@@ -264,7 +264,7 @@ int _stdcall WinMain
 	int TurnY;									//どちらのターンか判断
 	bool Turnflag;								//パスなどのためフラグ追加
 	int PassCount;								//パスした回数　２連続で続いたら終わり(黒白置くところがない状態)
-
+	bool PlayerHelp;							//おける場所の補佐ありか無しか
 
 
 	//スコア
@@ -401,6 +401,7 @@ int _stdcall WinMain
 					MousePositionX = screenWidth / 2, MousePositionY = screenHeight / 2;
 					WscoreL = WscoreR = BscoreL = BscoreR = 0;
 					PlayerTurn = PLAYERBLACK;
+					PlayerHelp = true;
 
 					for (int y = 0; y < ReversiXY; y++)
 					{
@@ -600,6 +601,18 @@ int _stdcall WinMain
 					Mx = (MousePositionX) / Pixel;
 					My = (MousePositionY) / Pixel;
 
+					if (pDi->KeyJustPressed(DIK_W))
+					{
+						//プレイヤーがおける場所,ヘルプを外したいとき
+						if (PlayerHelp != false)
+						{
+							PlayerHelp = false;
+						}
+						else
+						{
+							PlayerHelp = true;
+						}
+					}
 					//マウス座標が取れた　そしてプレイヤーがおける場所を押したとき
 					if (pDi->MouseButtonJustPressed(MOUSE_BUTTON_LEFT))
 					{
@@ -726,7 +739,7 @@ int _stdcall WinMain
 						sprite.Draw(textureDarkColt);
 					}
 					//おける場所描画
-					else if (ReversiFlag[x][y] == 1)
+					else if (ReversiFlag[x][y] == 1 && PlayerHelp == true)
 					{
 						sprite.SetPos(Pixel * x + Pixel / 2, Pixel * y + Pixel / 2);
 						sprite.Draw(textureRedColt);
